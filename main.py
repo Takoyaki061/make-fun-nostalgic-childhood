@@ -86,10 +86,19 @@ def check_line(line: str) -> None:
 
 
 def write_entry(line: str, destination: Path = DESTINATION) -> Path:
-    """Validate *line*, then write it (with a trailing newline) to disk."""
+    """Validate *line*, write it, then read it back and confirm the match.
+
+    The read-back matters: the sealed scorer reads the file the program
+    wrote, not the constant, so a write that silently dropped or altered a
+    character would pass the local validation and fail the gate. Verifying
+    the round-trip here makes that failure loud instead.
+    """
     check_line(line)
     destination.parent.mkdir(parents=True, exist_ok=True)
     destination.write_text(line + "\n", encoding="utf-8")
+    written = destination.read_text(encoding="utf-8")
+    if written != line + "\n":
+        raise SystemExit("gate failed: written file does not match the line")
     return destination
 
 
